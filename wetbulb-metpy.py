@@ -32,7 +32,7 @@ def select_grid(temp, press, qbot, bot_lat, top_lat, left_lon, right_lon):
     ds_temp = temp.sel(lat=slice(bot_lat,top_lat)).sel(lon=slice(left_lon, right_lon))
     ds_press = press.sel(lat=slice(bot_lat,top_lat)).sel(lon=slice(left_lon, right_lon))
     ds_qbot = qbot.sel(lat=slice(bot_lat,top_lat)).sel(lon=slice(left_lon, right_lon))
-    return temp, press, qbot
+    return ds_temp, ds_press, ds_qbot
 
 temp1, press1, qbot1 = select_grid(temp, press, qbot,-25,-20,130,140)
 
@@ -43,7 +43,7 @@ press_mean['PS'] = press_mean.PS.assign_attrs(units='Pa')
 def select_time(temp, qbot, start, end):
     ds_temp = temp.sel(time=slice(start, end))
     ds_qbot = qbot.sel(time=slice(start, end))
-    return temp, qbot
+    return ds_temp, ds_qbot
 
 temp2, qbot2 = select_time(temp1, qbot1, '2081-01-01 00:00:00', '2082-01-01 00:00:00')
 
