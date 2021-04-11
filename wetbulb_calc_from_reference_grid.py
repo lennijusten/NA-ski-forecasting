@@ -1,5 +1,7 @@
 # Calculate wetbulb with reference grid over a specified geographic region and time
 
+# Author: Lennart Justen
+
 import numpy as np
 import matplotlib.pyplot as plt
 import metpy.calc
