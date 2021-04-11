@@ -1,3 +1,5 @@
+# .sub file for HTCondor
+
 executable = exec_reference.sh
 
 should_transfer_files = YES
