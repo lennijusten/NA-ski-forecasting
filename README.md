@@ -1,6 +1,6 @@
 # Calculate Wetbulb Temperature
 
-![Wetbulb Temperature over NA in 2082!](wetbulb_001.png =250x)
+![Wetbulb Temperature over NA in 2082!](wetbulb_001.png)
 
 
 Calculating wetbulb temperature with `metpy.calc.wet_bulb_temperature` is an extremly long and expensive computation that is not well suited to run over large ensemble members ([see the docs](https://unidata.github.io/MetPy/latest/api/generated/metpy.calc.wet_bulb_temperature.html)). 
