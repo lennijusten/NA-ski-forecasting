@@ -1,5 +1,7 @@
 # Calculate and visualize the residual between temperature and wetbulb temperature
 
+# Author: Lennart Justen
+
 import numpy as np
 import matplotlib.pyplot as plt
 import metpy.calc
