@@ -1,3 +1,5 @@
+# Calculate wetbulb with metpy and dask (Broken)
+
 import numpy as np
 import pandas as pd
 import metpy.calc
@@ -36,6 +38,7 @@ def select_grid(temp, press, qbot, bot_lat, top_lat, left_lon, right_lon):
 
 temp1, press1, qbot1 = select_grid(temp, press, qbot,-25,-20,130,140)
 
+# Take time mean of pressure file such that each lat/lon grid has a single PS value thru time
 press_mean = press1.mean('time')
 press_mean['PS'] = press_mean.PS.assign_attrs(units='Pa')
 
@@ -61,11 +64,11 @@ def get_dewpoint(temp,press,qbot,method):
         print("Unknown method--Relative Humidity: 'RH', Water Vapor Partial Pressure: 'WVPP'")
 
 
-# RH, dewpointA = get_dewpoint(temp2, press_mean, qbot2, 'RH')
+RH, dewpoint = get_dewpoint(temp2, press_mean, qbot2, 'RH')
 
 vapor_pressure, dewpointB = get_dewpoint(temp2, press_mean, qbot2, 'WVPP')
 
-wetbulb = metpy.calc.wet_bulb_temperature(press_mean['PS'], temp2['TREFHT'], dewpointB)
+wetbulb = metpy.calc.wet_bulb_temperature(press_mean['PS'], temp2['TREFHT'], dewpoint)
 print(wetbulb)
 wetbulb.to_netcdf('wetbulb.nc')
 
