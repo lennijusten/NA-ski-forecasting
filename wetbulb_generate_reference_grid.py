@@ -1,6 +1,8 @@
 # Calculate reference grid at specified resoulution
 # WARNING: Long run times (5+ days)
 
+# Author: Lennart Justen
+
 import numpy as np
 import matplotlib.pyplot as plt
 import metpy.calc
