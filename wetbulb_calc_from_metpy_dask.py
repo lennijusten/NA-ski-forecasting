@@ -1,5 +1,7 @@
 # Calculate wetbulb with metpy and dask (Broken)
 
+# Author: Lennart Justen
+
 import numpy as np
 import pandas as pd
 import metpy.calc
