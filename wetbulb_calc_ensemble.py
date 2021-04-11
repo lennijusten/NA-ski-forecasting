@@ -1,3 +1,6 @@
+# Calculates wetbulb for an entire ensemble member and returns a single netCDF file
+# Runtime ~1hour
+
 import numpy as np
 import matplotlib.pyplot as plt
 import metpy.calc
