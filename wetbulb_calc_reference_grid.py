@@ -7,6 +7,7 @@ import metpy.calc
 from metpy.units import units
 import pickle
 
+# Grid Parameters
 press_min = 51000 # Pa
 press_max = 105000 # Pa
 press_nlayers = 300
@@ -33,6 +34,7 @@ dewpoint_res = 0.5
 # dewpoint_max = 30.0 
 # dewpoint_res = 1.0
 
+# Set range over all params
 t = np.arange(temp_min, temp_max, temp_res)
 td = np.arange(dewpoint_min, dewpoint_max, dewpoint_res)
 p = np.linspace(press_min, press_max, press_nlayers)
