@@ -12,8 +12,6 @@ import argparse
 
 # let input be list of all filenames 'f_temp1,f_temp2,f_temp3,f_qbot1,f_qbot2,f_qbot3,f_press_all, wetbulb_save_filename.nc'
 
-# remember to transfer low res grid pickle file wetbulb_metpy_lowres_2_15_grid.pkl
-
 # Example bash
 # /home1/ljusten/miniconda3/envs/climate36/bin/python /home1/ljusten/CESM/wetbulb_final_CHTC.py
 # 'b.e11.B20TRC5CNBDRD.f09_g16.009.cam.h1.TREFHT.19200101-20051231.nc,
@@ -119,7 +117,7 @@ RH, dewpoint = get_dewpoint(temp1, press_mean, qbot1, 'RH')
 
 temp_degC = temp1['TREFHT'].values - 273.15  # Convert temp to degC (no metpy units)
 
-with (open("wetbulb_metpy_lowres_2_15_grid.pkl", "rb")) as openfile:  # Load reference grid
+with (open("wetbulb_metpy_lowres_200_1.0_grid.pkl", "rb")) as openfile:  # Load reference grid
     while True:
         try:
             wetbulb = pickle.load(openfile)
