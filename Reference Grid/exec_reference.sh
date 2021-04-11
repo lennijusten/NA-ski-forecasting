@@ -12,4 +12,4 @@ tar -xzf $ENVNAME.tar.gz -C $ENVDIR
 
 ls -alF
 
-python3 wetbulb_highres.py
+python3 wetbulb_generate_reference_grid.py
