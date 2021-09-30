@@ -1,11 +1,5 @@
-import numpy as np
 import matplotlib.pyplot as plt
-import metpy.calc
-from metpy.units import units
-from tqdm import tqdm
-import pickle
 import xarray as xr
-import pandas as pd
 import cartopy.crs as ccrs
 import cartopy.feature as cpf
 
@@ -46,6 +40,7 @@ ref_period = ('1980-01-01 00:00:00', '2000-01-01 00:00:00')
 
 
 def reference_period_seasonal_mean(var, start, end):
+    # Returns season mean of xarray over specified reference period
     var_ref = select_time(var, start, end)
     return var_ref.groupby('time.season').mean('time')
 
@@ -54,12 +49,14 @@ def seasonal_averages(temp, wetbulb, reference_period=None, drop_reference_perio
     residual = temp['TREFHT'] - wetbulb['wetbulb']
 
     if reference_period is None:
+        # return seasonal wetbulb,temp,residual means over the entire period of the input data
         wetbulb_season = wetbulb.groupby('time.season').mean('time')
         temp_season = temp.groupby('time.season').mean('time')
         residual_season = residual.groupby('time.season').mean('time')
         return temp_season, wetbulb_season, residual_season
 
     elif reference_period is not None and drop_reference_period is False:
+        # return seasonal wetbulb,temp,residual means over the entire period of input data - mean from reference period
         wetbulb_season = wetbulb.groupby('time.season').mean('time')
         temp_season = temp.groupby('time.season').mean('time')
 
@@ -72,6 +69,8 @@ def seasonal_averages(temp, wetbulb, reference_period=None, drop_reference_perio
         return temp_season_diff, wetbulb_season_diff, residual_season
 
     elif reference_period is not None and drop_reference_period is True:
+        # return seasonal wetbulb,temp,residual means from the end of the reference period to the end of the input
+        # data - mean from the reference period
         temp_season_ref = reference_period_seasonal_mean(temp, reference_period[0], reference_period[1])
         wetbulb_season_ref = reference_period_seasonal_mean(wetbulb, reference_period[0], reference_period[1])
 
