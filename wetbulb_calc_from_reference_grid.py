@@ -70,7 +70,7 @@ RH, dewpoint = get_dewpoint(temp2, press_mean, qbot2, 'RH')
 
 temp_degC = temp2['TREFHT'].values - 273.15
 
-with (open("wetbulb_metpy_lowres_200_1.0_grid.pkl", "rb")) as openfile:
+with (open("Reference Grid/wetbulb_metpy_lowres_200_1.0_grid.pkl", "rb")) as openfile:
     while True:
         try:
             wetbulb = pickle.load(openfile)
