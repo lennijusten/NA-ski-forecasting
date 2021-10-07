@@ -1,8 +1,5 @@
 # Calculate Wetbulb Temperature
 
-![Wetbulb Temperature over NA in 2082!](wetbulb_001_small.png)
-
-
 Calculating wetbulb temperature with `metpy.calc.wet_bulb_temperature` is an extremly long and expensive computation that is not well suited to run over large ensemble members ([see the docs](https://unidata.github.io/MetPy/latest/api/generated/metpy.calc.wet_bulb_temperature.html)). 
 
 Instead we present a method to calculate wetbulb from an evenely spaced reference grid over the entire range of values for pressure, temperature, and dewpoint respectively. The script `wetbulb_generate_reference_grid.py` allows you to specify the range of parameters and the resolution at which to compute the reference grid. 
