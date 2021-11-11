@@ -87,13 +87,27 @@ def find_nearest(array, value):
     return idx
 
 
-def run_harness():
+def run_harness(overwrite=False):
     # Range of param values (Global)
     p_space = np.linspace(grid_config['press_min'], grid_config['press_max'], grid_config['press_nlayers'])
     t_space = np.arange(grid_config['temp_min'], grid_config['temp_max'], grid_config['temp_res'])
     dp_space = np.arange(grid_config['dewpoint_min'], grid_config['dewpoint_max'], grid_config['dewpoint_res'])
 
-    for i in tqdm(range(len(ensmems[0:5]))):
+    for i in tqdm(range(len(ensmems))):
+        save_name = "/adhara_a/ljusten/Wetbulb/b.e11.BRCP85C5CNBDRD.f09_g16.{}.cam.h1.WETBULB.19200101-21001231.nc".format(
+            ensmems[i])
+
+        if overwrite:
+            try:
+                os.remove(save_name)
+            except OSError:
+                pass
+        else:
+            if os.path.exists(save_name):
+                continue
+            else:
+                pass
+
         temp_iter = temp[i]
         qbot_iter = qbot[i]
 
@@ -120,13 +134,11 @@ def run_harness():
         wetbulb_.attrs['long_name'] = 'Wetbulb temperature'
 
         try:
-            wetbulb_ = wetbulb_.rename_vars({"__xarray_dataarray_variable__": "wetbulb"})
+            wetbulb_ = wetbulb_.rename({'__xarray_dataarray_variable__': "wetbulb"})
         except:
             pass
 
-        wetbulb_.to_netcdf(
-            "/adhara_a/ljusten/Wetbulb/b.e11.BRCP85C5CNBDRD.f09_g16.{}.cam.h1.WETBULB.19200101-21001231.nc".format(
-                ensmems[i]))
+        wetbulb_.to_netcdf(save_name)
 
 
 run_harness()

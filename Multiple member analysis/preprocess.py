@@ -36,17 +36,23 @@ def preprocess(ds):
     return ds_g
 
 
-def refactor_dataset(path, data_vars):
+def refactor_dataset(path, data_vars, overwrite=False):
     openme = [sorted(glob.glob(path + 'b.e11.B[2,R]*.' + str(ii).zfill(3) + '*.nc')) for ii in ensmems]
 
     for mem, oo in tqdm(enumerate(openme)):
         save_name = '/adhara_a/ljusten/{}/b.e11.BRCP85C5CNBDRD.f09_g16.{}.cam.h1.{}.19200101-21001231.nc'.format(
             data_vars[0], ensmems[mem], data_vars[0])
 
-        try:
-            os.remove(save_name)
-        except OSError:
-            pass
+        if overwrite:
+            try:
+                os.remove(save_name)
+            except OSError:
+                pass
+        else:
+            if os.path.exists(save_name):
+                continue
+            else:
+                pass
 
         try:
             ds = xr.open_mfdataset(oo, combine='by_coords', compat='override', coords='minimal', data_vars=data_vars,
