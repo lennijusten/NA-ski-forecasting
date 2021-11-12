@@ -11,6 +11,7 @@ import pickle
 import xarray as xr
 from natsort import natsorted
 import glob
+import os
 
 temp_path = '/adhara_a/ljusten/TREFHT/*.nc'
 qbot_path = '/adhara_a/ljusten/QBOT/*.nc'
