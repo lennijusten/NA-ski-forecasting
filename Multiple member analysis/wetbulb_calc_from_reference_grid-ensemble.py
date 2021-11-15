@@ -112,7 +112,20 @@ def run_harness(overwrite=False):
         temp_iter = temp[i]
         qbot_iter = qbot[i]
 
-        RH, dewpoint = get_dewpoint(temp_iter, press, qbot_iter, 'RH')
+        # See https://stackoverflow.com/questions/51058379/drop-duplicate-times-in-xarray
+        try:
+            RH, dewpoint = get_dewpoint(temp_iter, press, qbot_iter, 'RH')
+        except ValueError:
+            print(
+                'ValueError while calculating RH for ensemble member {}. Trying method to remove duplicate time indices...'.format(
+                    ensmems[i]))
+            _, t_index = np.unique(temp_iter['time'], return_index=True)
+            _, q_index = np.unique(qbot_iter['time'], return_index=True)
+
+            temp_iter = temp_iter.isel(time=t_index)
+            qbot_iter = qbot_iter.isel(time=q_index)
+
+            RH, dewpoint = get_dewpoint(temp_iter, press, qbot_iter, 'RH')
 
         temp_degC = temp_iter['TREFHT'].values - 273.15
 
@@ -142,4 +155,4 @@ def run_harness(overwrite=False):
         wetbulb_.to_netcdf(save_name)
 
 
-run_harness()
+run_harness(overwrite=False)
