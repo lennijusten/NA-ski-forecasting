@@ -1,64 +1,50 @@
-import matplotlib.pyplot as plt
+# Description: Bias correct the CESM temperature (TREFHT) files with gridded data from the ERA5 observation-based model
+# Author: Lennart Justen and Elizabeth Maroon
+
 import xarray as xr
-import cartopy.crs as ccrs
-import cartopy.feature as cpf
 import glob
 from natsort import natsorted
 import numpy as np
-import calendar
 import xesmf
-from matplotlib.gridspec import GridSpec
 import scipy.signal as sig
+import os
+from tqdm import tqdm
+import cftime
 
 wetbulb_path = '/adhara_a/ljusten/Wetbulb/*.nc'
 temp_path = '/adhara_a/ljusten/TREFHT/*.nc'
-era5_path = '/adhara_b/ERA5/daily/T2m/'
 
 ensmems = list(range(1, 36, 1)) + list(range(101, 106, 1))
+openme_temp = natsorted(glob.glob(temp_path))
+openme_wetbulb = natsorted(glob.glob(wetbulb_path))
 
 
-def init_data(temp_path, wetbulb_path, unit='C', n_mems=None):
-    if n_mems is None:
-        n_mems = len(ensmems)
-    else:
-        pass
+def init_era5_dataset(era5_path):
+    ds_era5 = xr.open_mfdataset(sorted(glob.glob(era5_path + 'era5_global_*.nc')),
+                                combine='by_coords', coords='minimal', compat='override',
+                                preprocess=preprocess_era5)
 
-    openme_temp = natsorted(glob.glob(temp_path))
-    openme_wetbulb = natsorted(glob.glob(wetbulb_path))
+    era5_climo = dayofyearmean(ds_era5)['t2m']
+    era5_climo.load()
 
-    temp = []
-    wetbulb = []
-    for i, mem in enumerate(ensmems[0:n_mems]):
-        temp_iter = xr.open_dataset(openme_temp[i])
-        wetbulb_iter = xr.open_dataset(openme_wetbulb[i])
+    lpfilt_era5_climo = xr.apply_ufunc(filter_wrapper, era5_climo, input_core_dims=[['doy_noleap']],
+                                       output_core_dims=[['doy_noleap']],
+                                       vectorize=True)
 
-        if unit is 'C':
-            temp_iter['TREFHT'].values = temp_iter['TREFHT'].values - 273.15
-        elif unit is 'K':
-            wetbulb_iter['wetbulb'].values = wetbulb_iter['wetbulb'].values + 273.15
-        else:
-            print(
-                "You will find no support (i.e. love) for Farenheit here. Trying using 'C' for Celsius or 'K' for Kelvin")
+    # make sure ERA5 dims have same names as CESMLE dims
+    lpfilt_era5_climo = lpfilt_era5_climo.rename({'latitude': 'lat', 'longitude': 'lon',
+                                                  'doy_noleap': 'dayofyear'})
 
-        temp.append(temp_iter)
-        wetbulb.append(wetbulb_iter)
-
-        temp_agg = xr.concat(temp, dim='M', compat='override', coords='minimal', data_vars=['TREFHT'])
-        wetbulb_agg = xr.concat(wetbulb, dim='M', compat='override', coords='minimal', data_vars=['wetbulb'])
-
-    return temp_agg, wetbulb_agg
-
-
-temp, wetbulb = init_data(temp_path, wetbulb_path, unit='K', n_mems=2)
+    return ds_era5, era5_climo, lpfilt_era5_climo
 
 
 def preprocess_era5(ds):
-    ds = ds.sel(latitude = slice(72,23), longitude=slice(190, 295))
-    ds = ds.resample(time = '1D').mean('time')  #6-hourly --> daily means
-    ds = ds.sel(time=~((ds.time.dt.month == 2) & (ds.time.dt.day == 29))) #removes leap days
+    ds = ds.sel(latitude=slice(72, 23), longitude=slice(190, 295))
+    ds = ds.resample(time='1D').mean('time')  # 6-hourly --> daily means
+    ds = ds.sel(time=~((ds.time.dt.month == 2) & (ds.time.dt.day == 29)))  # removes leap days
     doy = ds.time.dt.dayofyear
-    if doy.max()==366: doy = xr.where(doy>60, doy-1, doy)
-    ds['doy_noleap'] = doy #doy without leap days
+    if doy.max() == 366: doy = xr.where(doy > 60, doy - 1, doy)
+    ds['doy_noleap'] = doy  # doy without leap days
     ds = ds.sortby('latitude')
     return ds
 
@@ -94,57 +80,90 @@ def low_pass_weights(window, cutoff):
     return w[1:-1]
 
 
-def filter_wrapper(x):
-    return sig.filtfilt(wgts24, np.sum(wgts24), x)
-
-
 # specify the window length for filters
 window = 30  ## (default 25)
 cutoff = 1. / 30.  ## (default 1./11.)
 wgts24 = low_pass_weights(window, cutoff)
 
 
-def bias_correction(temp, era5_path):
-    # init era5 dataset
-    ds_era5 = xr.open_mfdataset(sorted(glob.glob(era5_path + 'era5_global_*.nc')), combine='by_coords',
-                                coords='minimal', compat='override', preprocess=preprocess_era5)
+def filter_wrapper(x):
+    return sig.filtfilt(wgts24, np.sum(wgts24), x)
 
-    # Get day of the year means
-    doym_era5 = dayofyearmean(ds_era5)['t2m']
-    doym_era5.load()
 
-    doym_cesm = temp['TREFHT'].groupby(temp['TREFHT'].time.dt.dayofyear).mean()
-    doym_cesm.load()
+def run_harness(era5_path, save_path, save_path_climo, overwrite=False, unit='K', nmems=None):
+    if nmems is None:
+        nmems = len(ensmems)
+    else:
+        pass
 
-    # Apply low pass Lanczos Filter
-    doym_lpfilt_era5 = xr.apply_ufunc(filter_wrapper, doym_era5, input_core_dims=[['doy_noleap']],
-                                      output_core_dims=[['doy_noleap']], vectorize=True)
+    substr = "TREFHT"
+    inserttxt = "-bc"
+    inserttxt_climo = "-climo"
+    temp_filenames_ = [os.path.basename(i) for i in natsorted(glob.glob(temp_path))]
+    temp_filenames = [i[:i.index(substr) + len(substr)] + inserttxt + i[i.index(substr) + len(substr):] for i in
+                      temp_filenames_]
+    temp_climo_filenames = [i[:i.index(substr) + len(substr)] + inserttxt_climo + i[i.index(substr) + len(substr):] for
+                            i in temp_filenames_]
 
-    doym_lpfilt_cesm = xr.apply_ufunc(filter_wrapper, doym_cesm, input_core_dims=[['dayofyear']],
-                                      output_core_dims=[['dayofyear']], vectorize=True)
+    ds_era5, era5_climo, lpfilt_era5_climo = init_era5_dataset(era5_path)
 
     lat_era5 = ds_era5.latitude
     lon_era5 = ds_era5.longitude
 
-    # Create empty dataset for the bias corrected values
     ds_out = xr.Dataset({'lat': (['lat'], lat_era5.data),
                          'lon': (['lon'], lon_era5.data), })
 
-    # regrid climo
-    regridder = xesmf.Regridder(temp, ds_out, 'bilinear')
-    doym_lpfilt_cesm_re = regridder(doym_lpfilt_cesm.transpose('dayofyear', 'lat', 'lon', 'M'))
+    for i, mem in tqdm(enumerate(ensmems[0:nmems])):
+        temp_iter = xr.open_dataset(openme_temp[i])
+        save_name = os.path.join(save_path, temp_filenames[i])
+        save_name_climo = os.path.join(save_path_climo, temp_climo_filenames[i])
 
-    # regrid CESM original to ERA5
-    cesm_re = regridder(temp)
+        if overwrite:
+            try:
+                os.remove(save_name)
+            except OSError:
+                pass
+        else:
+            if os.path.exists(save_name):
+                continue
+            else:
+                pass
 
-    # make sure ERA5 dims have same names as CESMLE dims
-    doym_lpfilt_era5 = doym_lpfilt_era5.rename({'latitude': 'lat', 'longitude': 'lon', 'doy_noleap': 'dayofyear'})
+        if unit is 'C':
+            temp_iter['TREFHT'].values = temp_iter['TREFHT'].values - 273.15
+        elif unit is 'K':
+            pass
+            # wetbulb_iter['wetbulb'].values = wetbulb_iter['wetbulb'].values + 273.15
+        else:
+            print("You will find no support (i.e. love) for Farenheit here. Trying using 'C' for Celsius or 'K' for "
+                  "Kelvin")
 
-    # calculate bias between one ensemble member and ERA5
-    cesm_bias = doym_lpfilt_cesm_re - doym_lpfilt_era5
+        d1 = cftime.DatetimeNoLeap(1979, 1, 1, 0, 0, 0)
+        d2 = cftime.DatetimeNoLeap(2019, 12, 31, 11, 59, 59)
+        cesm_climo = temp_iter['TREFHT'].sel(time=slice(d1, d2))
+        cesm_climo = cesm_climo.groupby(cesm_climo.time.dt.dayofyear).mean()
+        cesm_climo.to_netcdf(save_name_climo)
+        cesm_climo.load()
 
-    cesm_bias_removed = cesm_re.groupby(cesm_re.time.dt.dayofyear) - cesm_bias
-    return cesm_bias_removed
+        lpfilt_cesm_climo = xr.apply_ufunc(filter_wrapper, cesm_climo, input_core_dims=[['dayofyear']],
+                                           output_core_dims=[['dayofyear']], vectorize=True)
+
+        # regrid climo
+        regridder = xesmf.Regridder(temp_iter, ds_out, 'bilinear')
+
+        lpfilt_cesm_climo_re = regridder(lpfilt_cesm_climo.transpose('dayofyear', 'lat', 'lon'))
+
+        # regrid CESM original to ERA5
+        cesm_re = regridder(temp_iter)
+
+        # calculate bias between one ensemble member and ERA5
+        cesm_bias = lpfilt_cesm_climo_re - lpfilt_era5_climo
+
+        cesm_bias_removed = cesm_re.groupby(cesm_re.time.dt.dayofyear) - cesm_bias
+
+        cesm_bias_removed = cesm_bias_removed.astype('float32')
+        cesm_bias_removed.to_netcdf(save_name)
 
 
-temp_corrected = bias_correction(temp)
+run_harness('/adhara_b/ERA5/daily/T2m/', '/adhara_a/ljusten/TREFHT-bc/', '/adhara_a/ljusten/TREFHT-climatology/',
+            overwrite=True)
