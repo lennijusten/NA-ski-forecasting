@@ -62,7 +62,7 @@ months = [11,12,1,2,3] # if months = none, add full year
 periods = [2030,2060,2090]
 ref_period = ('1980-01-01 00:00:00', '2010-01-01 00:00:00')
 
-df = pd.read_csv('ski_locations_w_snowmaking_days_extended.csv', index_col =0)
+df = pd.read_csv('../Ridgeline plots/ski_locations_w_snowmaking_days_extended.csv', index_col =0)
 decades = [int(y) for y in np.unique(wetbulb['time.year']) if y%10==0]
 decades_labels = [int(y) if y%20==0 else '' for y in decades]
 
