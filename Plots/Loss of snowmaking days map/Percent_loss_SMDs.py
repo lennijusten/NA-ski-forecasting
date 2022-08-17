@@ -4,60 +4,12 @@ import cartopy.crs as ccrs
 from cartopy.io import shapereader
 import cartopy.feature as cpf
 import cartopy.feature as cfeature
-import glob
-from natsort import natsorted
-from tqdm import tqdm
 import pandas as pd
 import geopandas as gpd
 from shapely.geometry import Polygon
 import cmaps
 
-wetbulb_path = '/adhara_a/ljusten/Wetbulb-bc/*.nc'
-temp_path = '/adhara_a/ljusten/TREFHT-bc-degC/*.nc'
 df = pd.read_csv('ski_locations_w_snowmaking_days_extended.csv')
-ensmems = list(range(1, 36, 1)) + list(range(101, 106, 1))
-
-
-def init_data(temp_path, wetbulb_path, unit='C', n_mems=None):
-    if n_mems is None:
-        n_mems = len(ensmems)
-    else:
-        pass
-
-    openme_temp = natsorted(glob.glob(temp_path))
-    openme_wetbulb = natsorted(glob.glob(wetbulb_path))
-
-    temp = []
-    wetbulb = []
-    for i, mem in tqdm(enumerate(ensmems[0:n_mems])):
-        temp_iter = xr.open_dataset(openme_temp[i], chunks={})
-        wetbulb_iter = xr.open_dataset(openme_wetbulb[i], chunks={})
-
-        if unit is 'C':
-            pass
-        elif unit is 'K':
-            print('This version is slow and not yet fully optimized')
-            temp_iter['TREFHT'] = temp_iter['TREFHT'] + 273.15
-            wetbulb_iter['wetbulb'] = wetbulb_iter['wetbulb'] + 273.15
-        else:
-            print(
-                "You will find no support (i.e. love) for Farenheit here. Trying using 'C' for Celsius or 'K' for Kelvin")
-
-        temp.append(temp_iter)
-        wetbulb.append(wetbulb_iter)
-
-    temp_agg = xr.concat(temp, dim='M', compat='override', coords='minimal', data_vars=['TREFHT'])
-    wetbulb_agg = xr.concat(wetbulb, dim='M', compat='override', coords='minimal', data_vars=['wetbulb'])
-
-    return temp_agg, wetbulb_agg
-
-
-temp, wetbulb = init_data(temp_path, wetbulb_path, unit='C', n_mems=40)
-
-
-def select_time(var, start, end):
-    return var.sel(time=slice(start, end))
-
 
 def rect_from_bound(xmin, xmax, ymin, ymax):
     """Returns list of (x,y)'s for a rectangle"""
