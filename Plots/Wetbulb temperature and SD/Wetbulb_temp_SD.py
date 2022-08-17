@@ -128,6 +128,7 @@ def temp_and_SD(wetbulb, df, thresh, periods, months=None, projection=ccrs.Lambe
     for i, p in enumerate(periods):
         wetbulb_iter = wetbulb.sel(time=wetbulb.time.dt.month.isin(months))
         wetbulb_pmean = wetbulb_iter.groupby('time.year')[p].mean('time').mean('M')
+        wetbulb_sub0 = wetbulb_pmean <= 0.0
         wetbulb_pstd = wetbulb_iter.groupby('time.year')[p].mean('time').std('M')
 
         # setup projection and axis properties
@@ -179,6 +180,9 @@ def temp_and_SD(wetbulb, df, thresh, periods, months=None, projection=ccrs.Lambe
         w = wetbulb_pmean['wetbulb'].plot.contourf(transform=datacoord,
                                                    ax=axes[i, 0], cmap=cmap1, vmin=wb_min, vmax=wb_max,
                                                    add_colorbar=False, levels=wb_labels, add_labels=False)
+
+        sub0 = wetbulb_sub0['wetbulb'].plot.contour(transform=datacoord, ax=axes[i,0], colors='k', linewidths=0.3)
+
         w_std = wetbulb_pstd['wetbulb'].plot.contourf(transform=datacoord,
                                                       ax=axes[i, 1], cmap=cm.viridis, vmin=0, vmax=2,
                                                       add_colorbar=False, levels=np.linspace(0, 2, 5), add_labels=False)
