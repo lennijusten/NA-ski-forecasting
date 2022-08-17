@@ -116,7 +116,7 @@ states_provinces, poly, poly2, msk_pc = make_geometries()
 # ax = fig.add_subplot(1, 1, 1, projection=ccrs.LambertConformal())
 # ax.add_geometries(poly2, crs=ccrs.PlateCarree(), facecolor='black', edgecolor='black')
 
-def temp_and_SD(wetbulb, df, thresh, periods, months=None, projection=ccrs.LambertConformal(),
+def temp_and_SD(temp, wetbulb, df, thresh, periods, months=None, projection=ccrs.LambertConformal(),
                extent=[-130, -65, 24, 50], reference_period=None):
     datacoord = ccrs.PlateCarree()
 
@@ -127,8 +127,11 @@ def temp_and_SD(wetbulb, df, thresh, periods, months=None, projection=ccrs.Lambe
     # Coloumn 1
     for i, p in enumerate(periods):
         wetbulb_iter = wetbulb.sel(time=wetbulb.time.dt.month.isin(months))
+        temp_iter = temp.sel(time=temp.time.dt.month.isin(months))
+
         wetbulb_pmean = wetbulb_iter.groupby('time.year')[p].mean('time').mean('M')
-        wetbulb_sub0 = wetbulb_pmean <= 0.0
+        temp_pmean = temp_iter.groupby('time.year')[p].mean('time').mean('M')
+        temp_sub0 = temp_pmean <= 0.0
         wetbulb_pstd = wetbulb_iter.groupby('time.year')[p].mean('time').std('M')
 
         # setup projection and axis properties
@@ -181,7 +184,7 @@ def temp_and_SD(wetbulb, df, thresh, periods, months=None, projection=ccrs.Lambe
                                                    ax=axes[i, 0], cmap=cmap1, vmin=wb_min, vmax=wb_max,
                                                    add_colorbar=False, levels=wb_labels, add_labels=False)
 
-        sub0 = wetbulb_sub0['wetbulb'].plot.contour(transform=datacoord, ax=axes[i,0], colors='k', linewidths=0.3)
+        sub0 = temp_sub0['TREFHT'].plot.contour(transform=datacoord, ax=axes[i,0], colors='k', linewidths=0.5)
 
         w_std = wetbulb_pstd['wetbulb'].plot.contourf(transform=datacoord,
                                                       ax=axes[i, 1], cmap=cm.viridis, vmin=0, vmax=2,
@@ -201,4 +204,4 @@ def temp_and_SD(wetbulb, df, thresh, periods, months=None, projection=ccrs.Lambe
     plt.savefig('wetbulb_SD_colorbar.png', dpi=300)
 
 
-temp_and_SD(wetbulb, df, snow_thresh, periods, months, reference_period=ref_period)
+temp_and_SD(temp, wetbulb, df, snow_thresh, periods, months, reference_period=ref_period)
